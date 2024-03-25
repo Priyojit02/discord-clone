@@ -1,0 +1,104 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+//generator client {
+ // provider = "prisma-client-js"
+//}
+
+
+
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  relationMode = "prisma"
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+model Profile {
+  id        String    @id @default(cuid())
+  userId    String    @unique
+  name      String
+  imageUrl  String    @db.VarChar(255) // Adjust the length as per your requirements
+  email     String
+
+  servers   Server[]
+  members   Member[]
+  channels  Channel[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Server {
+  id            String    @id @default(cuid())
+  name          String
+  imageUrl      String?   @db.Text
+  invitecode    String    @db.Text @unique
+
+  profile       Profile?  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profileId     String
+
+  members       Member[]
+  channels      Channel[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([profileId])
+  @@index([invitecode])
+}
+
+enum MemberRole {
+  ADMIN
+  MODERATOR
+  GUEST
+}
+
+model Member {
+  id         String     @id @default(cuid())
+  role       MemberRole @default(GUEST)
+
+  profile    Profile?   @relation(fields:[profileId], references:[id], onDelete: Cascade)
+  profileId  String
+
+  server     Server?    @relation(fields:[serverId], references:[id], onDelete: Cascade)
+  serverId   String
+
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@index([profileId])
+  @@index([serverId])
+}
+
+enum ChannelType {
+  TEXT
+  AUDIO
+  VIDEO
+}
+
+model Channel {
+  id          String       @id @default(cuid())
+  name        String
+  type        ChannelType  @default(TEXT)
+
+  profile     Profile?     @relation(fields:[profileId], references:[id], onDelete: Cascade)
+  profileId   String
+
+  server      Server?      @relation(fields:[serverId], references:[id], onDelete: Cascade)
+  serverId    String
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([profileId])
+  @@index([serverId])
+}
